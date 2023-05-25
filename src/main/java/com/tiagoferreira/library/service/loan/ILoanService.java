@@ -18,4 +18,6 @@ public interface ILoanService {
     Loan update(Long id, LoanRequest request);
 
     <S> Page<S> findAll(Pageable pageable, Function<Loan, ? extends S> functionMapper);
+
+    Loan findById(Long id);
 }

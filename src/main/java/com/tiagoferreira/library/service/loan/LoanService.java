@@ -68,4 +68,9 @@ public class LoanService implements ILoanService {
     public <S> Page<S> findAll(Pageable pageable, Function<Loan, ? extends S> functionMapper) {
         return repository.findAll(pageable).map(functionMapper);
     }
+
+    @Override
+    public Loan findById(Long id) {
+        return repository.findById(id).orElseThrow(() -> new DomainException("Empréstimo não encontrado"));
+    }
 }

@@ -46,5 +46,10 @@ public class LoanController {
         return service.findAll(pageable, mapper::toResponse);
     }
 
+    @GetMapping("/{id}")
+    public LoanResponse findById(@PathVariable Long id) {
+        return mapper.toResponse(service.findById(id));
+    }
+
 
 }

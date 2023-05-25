@@ -76,8 +76,7 @@ public class LoanControllerTest {
 
 
         MockHttpServletRequestBuilder request = post(API)
-                .contentType("application/json")
-                .accept("application/json")
+                .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loan));
 
         ResultActions result = mvc.perform(request);
@@ -106,8 +105,7 @@ public class LoanControllerTest {
                 .build();
 
         MockHttpServletRequestBuilder request = post(API)
-                .contentType("application/json")
-                .accept("application/json")
+                .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loan));
 
         Assertions.assertThrows(ServletException.class, () -> {
@@ -130,8 +128,7 @@ public class LoanControllerTest {
                 .build();
 
         MockHttpServletRequestBuilder request = post(API)
-                .contentType("application/json")
-                .accept("application/json")
+                .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loan));
 
         Assertions.assertThrows(ServletException.class, () -> {
@@ -150,8 +147,7 @@ public class LoanControllerTest {
                 .build();
 
         MockHttpServletRequestBuilder request = patch(API + "/" + loanBD.getId())
-                .contentType("application/json")
-                .accept("application/json")
+                .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loan));
 
         ResultActions result = mvc.perform(request);
@@ -173,8 +169,7 @@ public class LoanControllerTest {
                 .build();
 
         MockHttpServletRequestBuilder request = patch(API + "/1")
-                .contentType("application/json")
-                .accept("application/json")
+                .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loan));
 
         Assertions.assertThrows(ServletException.class, () -> {
@@ -189,8 +184,7 @@ public class LoanControllerTest {
         var loanBD = createLoan();
 
         MockHttpServletRequestBuilder request = delete(API + "/" + loanBD.getId())
-                .contentType("application/json")
-                .accept("application/json");
+                .contentType(MediaType.APPLICATION_JSON);
 
         Assertions.assertDoesNotThrow(() -> {
             mvc.perform(request);
@@ -204,8 +198,7 @@ public class LoanControllerTest {
         createLoan();
 
         MockHttpServletRequestBuilder request = delete(API + "/1")
-                .contentType("application/json")
-                .accept("application/json");
+                .contentType(MediaType.APPLICATION_JSON);
 
         Assertions.assertThrows(ServletException.class, () -> {
             mvc.perform(request);
@@ -226,8 +219,7 @@ public class LoanControllerTest {
                 .build();
 
         MockHttpServletRequestBuilder request = put(API + "/" + loanBD.getId())
-                .contentType("application/json")
-                .accept("application/json")
+                .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loan));
 
         ResultActions result = mvc.perform(request);
@@ -255,8 +247,7 @@ public class LoanControllerTest {
                 .build();
 
         MockHttpServletRequestBuilder request = put(API + "/" + (loanDB.getId() + 1L))
-                .contentType("application/json")
-                .accept("application/json")
+                .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loan));
 
         Assertions.assertThrows(ServletException.class, () -> {
@@ -320,6 +311,38 @@ public class LoanControllerTest {
 
         Assertions.assertNotNull(response);
         Assertions.assertNotEquals(response.getContent().size(), totalExpected);
+    }
+
+    @Test
+    @DisplayName("Buscar emprestimo por id teste bem sucedido")
+    public void findByIdIsOk() throws Exception {
+        var loanBD = createLoan();
+
+        MockHttpServletRequestBuilder request = get(API + "/" + loanBD.getId())
+                .contentType(MediaType.APPLICATION_JSON);
+
+        ResultActions result = mvc.perform(request);
+
+        final LoanResponse response = objectMapper.readValue(
+                result.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8), new TypeReference<>() {
+                });
+
+        Assertions.assertEquals(200, result.andReturn().getResponse().getStatus());
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals(loanBD.getCustomer(), response.getCustomer());
+    }
+
+    @Test
+    @DisplayName("Buscar emprestimo por id teste mal sucedido, Emprestimo não encontrado")
+    public void findByIdIsInvalid() throws Exception {
+        var loanBD = createLoan();
+
+        MockHttpServletRequestBuilder request = get(API + "/" + (loanBD.getId() + 1L))
+                .contentType(MediaType.APPLICATION_JSON);
+
+        Assertions.assertThrows(ServletException.class, () -> {
+            mvc.perform(request);
+        });
     }
 
     private Loan createLoanForList(Long id) {
