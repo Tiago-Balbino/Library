@@ -6,21 +6,26 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tiagoferreira.library.entity.Book;
 import com.tiagoferreira.library.entity.Loan;
+import com.tiagoferreira.library.model.book.BookResponse;
 import com.tiagoferreira.library.model.loan.LoanRequest;
 import com.tiagoferreira.library.model.loan.LoanResponse;
 import com.tiagoferreira.library.repository.BookRepository;
 import com.tiagoferreira.library.repository.LoanRepository;
+import com.tiagoferreira.library.suport.PaginationImpl;
 import jakarta.servlet.ServletException;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.http.MediaType;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -28,9 +33,10 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
 @Rollback
 @Transactional
@@ -174,6 +180,159 @@ public class LoanControllerTest {
         Assertions.assertThrows(ServletException.class, () -> {
             mvc.perform(request);
         });
+    }
+
+
+    @Test
+    @DisplayName("Deletar emprestimo teste bem sucedido")
+    public void deleteLoanIsOk() {
+        var loanBD = createLoan();
+
+        MockHttpServletRequestBuilder request = delete(API + "/" + loanBD.getId())
+                .contentType("application/json")
+                .accept("application/json");
+
+        Assertions.assertDoesNotThrow(() -> {
+            mvc.perform(request);
+        });
+
+    }
+
+    @Test
+    @DisplayName("Deletar emprestimo teste mal sucedido, Emprestimo não encontrado")
+    public void deleteLoanIsInvalid() {
+        createLoan();
+
+        MockHttpServletRequestBuilder request = delete(API + "/1")
+                .contentType("application/json")
+                .accept("application/json");
+
+        Assertions.assertThrows(ServletException.class, () -> {
+            mvc.perform(request);
+        });
+    }
+
+    @Test
+    @DisplayName("Atualizar emprestimo teste bem sucedido")
+    public void updateLoanIsOk() throws Exception {
+        var loanBD = createLoan();
+
+        var loan = LoanRequest.builder()
+                .customer("Fulano 2")
+                .loanDate(LocalDate.now())
+                .returned(false)
+                .customerEmail(loanBD.getCustomerEmail())
+                .idBook(loanBD.getBook().getId())
+                .build();
+
+        MockHttpServletRequestBuilder request = put(API + "/" + loanBD.getId())
+                .contentType("application/json")
+                .accept("application/json")
+                .content(objectMapper.writeValueAsString(loan));
+
+        ResultActions result = mvc.perform(request);
+
+        final LoanResponse response = objectMapper.readValue(
+                result.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8), new TypeReference<>() {
+                });
+
+        Assertions.assertEquals(200, result.andReturn().getResponse().getStatus());
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals(loan.getCustomer(), response.getCustomer());
+    }
+
+    @Test
+    @DisplayName("Atualizar emprestimo teste mal sucedido, Emprestimo não encontrado")
+    public void updateLoanIsInvalid() throws JsonProcessingException {
+        var loanDB = createLoan();
+
+        var loan = LoanRequest.builder()
+                .customer("Fulano 2")
+                .loanDate(LocalDate.now())
+                .returned(false)
+                .customerEmail("Teste@gmail.com")
+                .idBook(null)
+                .build();
+
+        MockHttpServletRequestBuilder request = put(API + "/" + (loanDB.getId() + 1L))
+                .contentType("application/json")
+                .accept("application/json")
+                .content(objectMapper.writeValueAsString(loan));
+
+        Assertions.assertThrows(ServletException.class, () -> {
+            mvc.perform(request);
+        });
+    }
+
+    @Rollback
+    @ParameterizedTest
+    @CsvSource({"0, 5, 20, 5", "2, 5, 20, 5", "10, 5, 20, 0"})
+    @DisplayName("Buscar todos os livros paginado teste bem sucedido")
+    public void findAllLoanWithIsOk(int page, int size, int fakeSize, int totalExpected) throws Exception {
+
+        List<Loan> emprestimos = new ArrayList<>();
+
+        for (int i = 1; i <= fakeSize; i++) {
+            emprestimos.add(createLoanForList((long) i));
+        }
+
+        Assertions.assertEquals(fakeSize, emprestimos.size());
+
+        final MockHttpServletRequestBuilder requestBuilder = get(API + "/all")
+                .param("page", String.valueOf(page))
+                .param("size", String.valueOf(size))
+                .param("order", "id,asc")
+                .contentType(MediaType.APPLICATION_JSON);
+
+        final ResultActions result = mvc.perform(requestBuilder);
+
+        final PaginationImpl<BookResponse> response = objectMapper.readValue(result.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8), new TypeReference<>() {
+        });
+
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals(response.getContent().size(), totalExpected);
+    }
+
+    @Rollback
+    @ParameterizedTest
+    @CsvSource({"0, 5, 20, 10", "2, 5, 20, 10", "10, 5, 20, 10"})
+    @DisplayName("Buscar todos os livros paginado teste mal sucedido")
+    public void findAllBookWithIsInvalid(int page, int size, int fakeSize, int totalExpected) throws Exception {
+
+        List<Loan> emprestimos = new ArrayList<>();
+
+        for (int i = 1; i <= fakeSize; i++) {
+            emprestimos.add(createLoanForList((long) i));
+        }
+
+        Assertions.assertEquals(fakeSize, emprestimos.size());
+
+        final MockHttpServletRequestBuilder requestBuilder = get(API + "/all")
+                .param("page", String.valueOf(page))
+                .param("size", String.valueOf(size))
+                .param("order", "id,asc")
+                .contentType(MediaType.APPLICATION_JSON);
+
+        final ResultActions result = mvc.perform(requestBuilder);
+
+        final PaginationImpl<BookResponse> response = objectMapper.readValue(result.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8), new TypeReference<>() {
+        });
+
+        Assertions.assertNotNull(response);
+        Assertions.assertNotEquals(response.getContent().size(), totalExpected);
+    }
+
+    private Loan createLoanForList(Long id) {
+        var loan = Loan.builder()
+                .id(id)
+                .customer("Fulano " + id)
+                .loanDate(LocalDate.now())
+                .returned(false)
+                .book(createBook())
+                .customerEmail("teste@gmail.com")
+                .build();
+
+        return loanRepository.save(loan);
     }
 
     public Book createBook() {

@@ -4,6 +4,8 @@ import com.tiagoferreira.library.model.loan.LoanMapper;
 import com.tiagoferreira.library.model.loan.LoanRequest;
 import com.tiagoferreira.library.model.loan.LoanResponse;
 import com.tiagoferreira.library.service.loan.ILoanService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -27,6 +29,21 @@ public class LoanController {
     @PatchMapping("/{id}")
     public LoanResponse retornedBook(@RequestBody LoanRequest request, @PathVariable Long id) {
         return mapper.toResponse(service.retornedBook(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        service.delete(id);
+    }
+
+    @PutMapping("/{id}")
+    public LoanResponse update(@RequestBody LoanRequest request, @PathVariable Long id) {
+        return mapper.toResponse(service.update(id, request));
+    }
+
+    @GetMapping("/all")
+    public Page<LoanResponse> findAll(Pageable pageable) {
+        return service.findAll(pageable, mapper::toResponse);
     }
 
 
