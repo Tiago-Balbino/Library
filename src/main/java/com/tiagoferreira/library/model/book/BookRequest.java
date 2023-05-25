@@ -8,6 +8,7 @@ import lombok.*;
 @Getter
 @Setter
 public class BookRequest {
+
     private String nome;
 
     private String autor;

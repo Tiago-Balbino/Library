@@ -48,6 +48,18 @@ public class BookService implements IBookService {
         repository.deleteById(id);
     }
 
+    @Override
+    public Book update(BookRequest request, Long id) {
+        if (!repository.existsById(id)) {
+            throw new DomainException("Book não encontrado");
+        }
+        var book = repository.findById(id).orElseThrow(() -> new DomainException("Book não encontrado"));
+        book.setAutor(request.getAutor());
+        book.setNome(request.getNome());
+        book.setIsbn(request.getIsbn());
+        return repository.save(book);
+    }
+
     private boolean isbnIsExists(String isbn) {
         return repository.existsByIsbn(isbn);
     }

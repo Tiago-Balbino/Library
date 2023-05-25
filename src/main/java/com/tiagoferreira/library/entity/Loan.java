@@ -3,7 +3,7 @@ package com.tiagoferreira.library.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.List;
+import java.time.LocalDate;
 
 @Entity
 @Getter
@@ -11,21 +11,21 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class Book {
+public class Loan {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "NOME")
-    private String nome;
+    private String customer;
 
-    @Column(name = "AUTOR")
-    private String autor;
+    private String customerEmail;
 
-    @Column
-    private String isbn;
+    @JoinColumn(name = "id_book")
+    @ManyToOne
+    private Book book;
 
-    @OneToMany(mappedBy = "book")
-    private List<Loan> loans;
+    private LocalDate loanDate;
+
+    private Boolean returned;
 }

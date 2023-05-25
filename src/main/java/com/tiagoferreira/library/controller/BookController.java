@@ -1,8 +1,8 @@
 package com.tiagoferreira.library.controller;
 
+import com.tiagoferreira.library.model.book.BookMapper;
 import com.tiagoferreira.library.model.book.BookRequest;
 import com.tiagoferreira.library.model.book.BookResponse;
-import com.tiagoferreira.library.model.book.IBookMapper;
 import com.tiagoferreira.library.service.book.IBookService;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,10 +10,10 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/books")
 public class BookController {
 
-    private final IBookMapper mapper;
+    private final BookMapper mapper;
     private final IBookService service;
 
-    public BookController(IBookMapper mapper, IBookService service) {
+    public BookController(BookMapper mapper, IBookService service) {
         this.mapper = mapper;
         this.service = service;
     }
@@ -33,4 +33,8 @@ public class BookController {
         service.delete(id);
     }
 
+    @PutMapping("/{id}")
+    public BookResponse update(@RequestBody BookRequest request, @PathVariable Long id) {
+        return mapper.toResponse(service.update(request, id));
+    }
 }

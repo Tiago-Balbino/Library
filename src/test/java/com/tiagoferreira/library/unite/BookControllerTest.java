@@ -149,6 +149,53 @@ public class BookControllerTest {
         });
     }
 
+    @Test
+    @DisplayName("Atualizar Book teste bem sucedido")
+    public void updateBookWithIsOk() throws Exception {
+
+        var book = createBook();
+
+        var bookUpdate = BookRequest.builder()
+                .nome("Harry Potter 2")
+                .autor(book.getAutor())
+                .isbn(book.getIsbn())
+                .build();
+
+        MockHttpServletRequestBuilder request = put(API + "/" + book.getId())
+                .content(objectMapper.writeValueAsString(bookUpdate)).contentType(MediaType.APPLICATION_JSON);
+
+        ResultActions result = mvc.perform(request);
+
+        final BookResponse response = objectMapper.readValue(
+                result.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8), new TypeReference<>() {
+                });
+
+        Assertions.assertEquals(200, result.andReturn().getResponse().getStatus());
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals(bookUpdate.getNome(), response.getNome());
+
+    }
+
+    @Test
+    @DisplayName("Atualizar Book teste mal sucedido")
+    public void updateBookWithIsInvalid() throws Exception {
+        var book = createBook();
+
+        var bookUpdate = BookRequest.builder()
+                .nome("Harry Potter 2")
+                .autor(book.getAutor())
+                .isbn(book.getIsbn())
+                .build();
+
+        MockHttpServletRequestBuilder request = put(API + "/2")
+                .content(objectMapper.writeValueAsString(bookUpdate)).contentType(MediaType.APPLICATION_JSON);
+
+        Assertions.assertThrows(ServletException.class, () -> {
+            mvc.perform(request);
+        });
+
+    }
+
     public Book createBook() {
         var book = Book.builder()
                 .nome("Harry Potter")

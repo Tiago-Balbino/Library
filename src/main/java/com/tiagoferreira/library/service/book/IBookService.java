@@ -9,4 +9,6 @@ public interface IBookService {
     Book getById(Long id);
 
     void delete(Long id);
+
+    Book update(BookRequest request, Long id);
 }
