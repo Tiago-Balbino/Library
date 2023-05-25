@@ -8,12 +8,15 @@ import com.tiagoferreira.library.exception.DomainException;
 import com.tiagoferreira.library.model.book.BookRequest;
 import com.tiagoferreira.library.model.book.BookResponse;
 import com.tiagoferreira.library.repository.BookRepository;
+import com.tiagoferreira.library.suport.PaginationImpl;
 import jakarta.servlet.ServletException;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -26,6 +29,8 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
@@ -51,7 +56,7 @@ public class BookControllerTest {
     }
 
     @Test
-    @DisplayName("Criar Book teste bem sucesso")
+    @DisplayName("Criar livro teste bem sucesso")
     public void createWithIsOk() throws Exception {
         var book = BookRequest.builder()
                 .nome("Harry Potter")
@@ -71,7 +76,7 @@ public class BookControllerTest {
     }
 
     @Test
-    @DisplayName("Criar Book teste mal sucedido")
+    @DisplayName("Criar livro teste mal sucedido")
     public void createWithIsInvalid() throws Exception {
 
         var book = new BookRequest();
@@ -85,7 +90,7 @@ public class BookControllerTest {
     }
 
     @Test
-    @DisplayName("Criar Book teste mal sucedido, book com ISBN ja cadastrado")
+    @DisplayName("Criar livro teste mal sucedido, book com ISBN ja cadastrado")
     public void createWithIsISBN() throws Exception {
 
         var book = createBook();
@@ -98,7 +103,7 @@ public class BookControllerTest {
     }
 
     @Test
-    @DisplayName("Buscar Book por id teste bem sucedido")
+    @DisplayName("Buscar livro por id teste bem sucedido")
     public void getBookWithIsOk() throws Exception {
         var book = createBook();
 
@@ -115,8 +120,8 @@ public class BookControllerTest {
     }
 
     @Test
-    @DisplayName("Buscar Book por id teste mal sucedido")
-    public void getBookWithIsInvalid() throws Exception {
+    @DisplayName("Buscar livro por id teste mal sucedido")
+    public void getBookWithIsInvalid() {
         MockHttpServletRequestBuilder request = get(API + "/1").contentType(MediaType.APPLICATION_JSON);
 
         Assertions.assertThrows(ServletException.class, () -> {
@@ -125,7 +130,7 @@ public class BookControllerTest {
     }
 
     @Test
-    @DisplayName("Deletar Book por id teste bem sucedido")
+    @DisplayName("Deletar livro por id teste bem sucedido")
     public void deleteBookWithIsOk() throws Exception {
 
         var book = createBook();
@@ -135,12 +140,12 @@ public class BookControllerTest {
         mvc.perform(request);
 
         Assertions.assertThrows(DomainException.class, () -> {
-            bookRepository.findById(book.getId()).orElseThrow(() -> new DomainException("Book não encontrado"));
+            bookRepository.findById(book.getId()).orElseThrow(() -> new DomainException("Livro não encontrado"));
         });
     }
 
     @Test
-    @DisplayName("Deletar Book por id teste mal sucedido")
+    @DisplayName("Deletar livro por id teste mal sucedido")
     public void deleteBookWithIsInvalid() throws Exception {
         MockHttpServletRequestBuilder request = delete(API + "/1").contentType(MediaType.APPLICATION_JSON);
 
@@ -150,7 +155,7 @@ public class BookControllerTest {
     }
 
     @Test
-    @DisplayName("Atualizar Book teste bem sucedido")
+    @DisplayName("Atualizar livro teste bem sucedido")
     public void updateBookWithIsOk() throws Exception {
 
         var book = createBook();
@@ -196,6 +201,75 @@ public class BookControllerTest {
 
     }
 
+    @Rollback
+    @ParameterizedTest
+    @CsvSource({"0, 5, 20, 5", "2, 5, 20, 5", "10, 5, 20, 0"})
+    @DisplayName("Buscar todos os livros paginado teste bem sucedido")
+    public void findAllBookWithIsOk(int page, int size, int fakeSize, int totalExpected) throws Exception {
+
+        List<Book> livros = new ArrayList<>();
+
+        for (int i = 1; i <= fakeSize; i++) {
+            livros.add(createBookForList((long) i));
+        }
+
+        Assertions.assertEquals(fakeSize, livros.size());
+
+        final MockHttpServletRequestBuilder requestBuilder = get(API + "/all")
+                .param("page", String.valueOf(page))
+                .param("size", String.valueOf(size))
+                .param("order", "id,asc")
+                .contentType(MediaType.APPLICATION_JSON);
+
+        final ResultActions result = mvc.perform(requestBuilder);
+
+        final PaginationImpl<BookResponse> response = objectMapper.readValue(result.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8), new TypeReference<>() {
+        });
+
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals(response.getContent().size(), totalExpected);
+    }
+
+    @Rollback
+    @ParameterizedTest
+    @CsvSource({"0, 5, 20, 10", "2, 5, 20, 10", "10, 5, 20, 10"})
+    @DisplayName("Buscar todos os livros paginado teste mal sucedido")
+    public void findAllBookWithIsInvalid(int page, int size, int fakeSize, int totalExpected) throws Exception {
+
+        List<Book> livros = new ArrayList<>();
+
+        for (int i = 1; i <= fakeSize; i++) {
+            livros.add(createBookForList((long) i));
+        }
+
+        Assertions.assertEquals(fakeSize, livros.size());
+
+        final MockHttpServletRequestBuilder requestBuilder = get(API + "/all")
+                .param("page", String.valueOf(page))
+                .param("size", String.valueOf(size))
+                .param("order", "id,asc")
+                .contentType(MediaType.APPLICATION_JSON);
+
+        final ResultActions result = mvc.perform(requestBuilder);
+
+        final PaginationImpl<BookResponse> response = objectMapper.readValue(result.andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8), new TypeReference<>() {
+        });
+
+        Assertions.assertNotNull(response);
+        Assertions.assertNotEquals(response.getContent().size(), totalExpected);
+    }
+
+    private Book createBookForList(Long id) {
+        var book = Book.builder()
+                .id(id)
+                .nome("Harry Potter " + id)
+                .autor("J.K.Rolling")
+                .isbn("adsa")
+                .build();
+
+        return bookRepository.save(book);
+    }
+
     public Book createBook() {
         var book = Book.builder()
                 .nome("Harry Potter")
@@ -205,6 +279,4 @@ public class BookControllerTest {
 
         return bookRepository.save(book);
     }
-
-
 }

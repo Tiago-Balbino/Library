@@ -4,6 +4,8 @@ import com.tiagoferreira.library.model.book.BookMapper;
 import com.tiagoferreira.library.model.book.BookRequest;
 import com.tiagoferreira.library.model.book.BookResponse;
 import com.tiagoferreira.library.service.book.IBookService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -36,5 +38,10 @@ public class BookController {
     @PutMapping("/{id}")
     public BookResponse update(@RequestBody BookRequest request, @PathVariable Long id) {
         return mapper.toResponse(service.update(request, id));
+    }
+
+    @GetMapping("/all")
+    public Page<BookResponse> findAll(Pageable pageable) {
+        return service.findAll(pageable, mapper::toResponse);
     }
 }

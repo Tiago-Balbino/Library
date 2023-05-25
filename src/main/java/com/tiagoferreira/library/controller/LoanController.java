@@ -14,7 +14,6 @@ public class LoanController {
 
     private final ILoanService service;
 
-
     public LoanController(LoanMapper mapper, ILoanService service) {
         this.mapper = mapper;
         this.service = service;

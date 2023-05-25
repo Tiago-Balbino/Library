@@ -21,18 +21,21 @@ public class LoanService implements ILoanService {
 
     @Override
     public Loan create(LoanRequest request) {
+        validateCreate(request);
 
-        if (repository.existsByBookAndNotReturned(request.getIdBook())) {
-            throw new DomainException("Livro Já Emprestado");
-        }
-
-        var book = bookService.getById(request.getIdBook());
-        Loan loan = new Loan();
-        loan.setBook(book);
+        var loan = new Loan();
+        loan.setBook(bookService.getById(request.getIdBook()));
         loan.setCustomer(request.getCustomer());
         loan.setLoanDate(request.getLoanDate());
         loan.setReturned(request.getReturned());
+
         return repository.save(loan);
+    }
+
+    public void validateCreate(LoanRequest request) {
+        if (repository.existsByBookAndNotReturned(request.getIdBook())) {
+            throw new DomainException("Livro Já Emprestado");
+        }
     }
 
     @Override

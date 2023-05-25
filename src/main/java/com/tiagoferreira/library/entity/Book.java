@@ -23,7 +23,7 @@ public class Book {
     @Column(name = "AUTOR")
     private String autor;
 
-    @Column
+    @Column(name = "ISBN")
     private String isbn;
 
     @OneToMany(mappedBy = "book")
